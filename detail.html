@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Center Details - RelaxHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <a href="index.html" class="logo">Relax<span style="color: var(--primary)">Hub</span></a>
+
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="lang-switch">
+                    <button class="lang-btn active" onclick="setLanguage('en')">EN</button>
+                    <button class="lang-btn" onclick="setLanguage('ru')">RU</button>
+                    <button class="lang-btn" onclick="setLanguage('kz')">KZ</button>
+                </div>
+                <a href="index.html" class="nav-back-btn" style="color: white; font-weight: 600;">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 120px; padding-bottom: 50px;">
+        <div id="detailContent">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal-overlay">
+        <div class="modal-base">
+            <i class="fas fa-times close-modal" onclick="closeBookingModal()"></i>
+            <h2 class="modal-title" id="modal-title">Book a Visit</h2>
+            <form onsubmit="submitBooking(event)">
+                <div class="form-group">
+                    <label for="name" id="lbl-name">Your Name</label>
+                    <input type="text" id="name" required placeholder="">
+                </div>
+                <div class="form-group">
+                    <label for="date" id="lbl-date">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="time" id="lbl-time">Time</label>
+                    <input type="time" id="time" required>
+                </div>
+                <div class="form-group">
+                    <label for="guests" id="lbl-guests">Guests</label>
+                    <input type="number" id="guests" min="1" value="2" required>
+                </div>
+
+                <!-- Custom Selectors (Hidden by default) -->
+                <div id="custom-options" style="display:none; margin-bottom: 20px;">
+                    <!-- Injected via JS -->
+                </div>
+
+                <!-- Seat Selection (Hidden by default) -->
+                <div id="seat-selection-area">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;"
+                        id="zone-title">Select Zone</h3>
+                    <div id="seatGrid" class="booking-grid">
+                        <!-- Seats injected via JS -->
+                    </div>
+                </div>
+                <button type="submit" class="cta-button" style="width: 100%; margin-top: 20px;" id="btn-confirm">Confirm
+                    Booking</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div id="menuModal" class="modal-overlay">
+        <div class="modal-base">
+            <i class="fas fa-times close-modal" onclick="closeMenuModal()"></i>
+            <h2 class="modal-title">Tasty Menu</h2>
+            <div id="menuGrid" class="menu-grid">
+                <!-- Items injected via JS -->
+            </div>
+            <div class="order-summary">
+                <span>Total:</span>
+                <span id="menuTotal">0 ₸</span>
+            </div>
+            <button class="cta-button" style="width: 100%; margin-top: 20px;" onclick="confirmFoodOrder()">Add to
+                Booking</button>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container footer-content">
+            <h2>RelaxHub</h2>
+            <p>&copy; 2026 Virtual Entertainment Directory. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const centerId = params.get('id');
+        const contentDiv = document.getElementById('detailContent');
+
+        function renderDetail() {
+            const t = (typeof translations !== 'undefined' && translations[currentLang]) ? translations[currentLang] : translations['en'];
+            const center = centersData.find(c => c.id == centerId);
+
+            if (!center) {
+                contentDiv.innerHTML = `<h2>${t.centerNotFound || 'Center not found!'}</h2><a href="index.html">${t.goBack || 'Go Back'}</a>`;
+                return;
+            }
+
+            // Features Logic
+            let featuresHtml = '';
+            if (center.features && center.features.length > 0) {
+                featuresHtml = `
+                    <div style="margin-top: 30px;">
+                        <h3 id="lbl-keyfeatures" style="margin-bottom: 15px; color: var(--primary);">${t.keyFeatures}</h3>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            ${center.features.map(f => `
+                                <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; border: 1px solid var(--primary); font-size: 0.9rem;">
+                                    <i class="fas fa-check" style="color: var(--secondary); margin-right: 5px;"></i> ${f}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // --- REVIEWS LOGIC (Updated) ---
+            const localReviews = JSON.parse(localStorage.getItem('gamezone_reviews')) || [];
+            // Filter by ID (string/number check)
+            const centerLocalReviews = localReviews.filter(r => r.centerId == centerId);
+            // Merge reverse to show newest first if we wanted, but here appending
+            const allReviews = [...centerLocalReviews, ...(center.reviews || [])];
+
+            // Review Form HTML
+            const reviewFormHtml = `
+                <div class="review-form">
+                    <h4 style="margin-bottom:10px;">Write a Review</h4>
+                    <div class="star-rating-input" id="starRatingInput">
+                        <i class="far fa-star" onclick="setStar(1)"></i>
+                        <i class="far fa-star" onclick="setStar(2)"></i>
+                        <i class="far fa-star" onclick="setStar(3)"></i>
+                        <i class="far fa-star" onclick="setStar(4)"></i>
+                        <i class="far fa-star" onclick="setStar(5)"></i>
+                    </div>
+                    <textarea id="reviewText" rows="3" placeholder="Share your experience..." style="width:100%; padding:10px; background:rgba(0,0,0,0.2); border:1px solid #444; color:white; border-radius:10px; margin-bottom:10px; font-family:inherit;"></textarea>
+                    <button onclick="submitReview()" class="cta-button" style="padding: 8px 20px; font-size: 0.9rem;">Post Review</button>
+                </div>
+            `;
+
+            let reviewsListHtml = '';
+            if (allReviews.length > 0) {
+                reviewsListHtml = allReviews.map(r => `
+                    <div class="review-card">
+                        <div class="review-header">
+                            <span class="review-author">${r.user}</span>
+                            <span class="star-rating">${'<i class="fas fa-star"></i>'.repeat(r.rating)}</span>
+                        </div>
+                        <p style="color: var(--text-muted);">${r.comment}</p>
+                        ${r.date ? `<div style="font-size:0.7rem; color:#555; margin-top:5px; text-align:right;">${r.date}</div>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                reviewsListHtml = `<div id="lbl-noreviews" style="color: var(--text-muted);">${t.noReviews}</div>`;
+            }
+
+            const reviewsHtml = `
+                <div style="margin-top: 40px;">
+                    <h2 id="lbl-reviews" style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">${t.reviews}</h2>
+                    ${reviewFormHtml}
+                    ${reviewsListHtml}
+                </div>
+            `;
+
+            contentDiv.innerHTML = `
+                <div style="background: var(--card-bg); border-radius: 20px; overflow: hidden; border: var(--card-border);">
+                    <div style="height: 400px; width: 100%; position: relative;">
+                         <img src="${center.image}" style="width: 100%; height: 100%; object-fit: cover;" alt="${center.name}">
+                         <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 40px 30px;">
+                            <span style="background: var(--primary); color: #000; padding: 5px 15px; border-radius: 10px; font-weight: bold; font-size: 0.9rem;">${center.typeName}</span>
+                            <h1 style="font-size: 3rem; margin-top: 10px;">${center.name}</h1>
+                            ${center.rating ? `<div style="color: #ffd700; font-size: 1.2rem; margin-top: 10px;"><i class="fas fa-star"></i> ${center.rating} / 5.0</div>` : ''}
+                         </div>
+                    </div>
+                    
+                    <div style="padding: 40px;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px;">
+                            <div>
+                                <h2 id="lbl-about" style="margin-bottom: 20px;">${t.aboutPlace}</h2>
+                                <p style="font-size: 1.1rem; line-height: 1.6; color: rgba(255,255,255,0.8); white-space: pre-line;">
+                                    ${center.description}
+                                </p>
+                                ${featuresHtml}
+                                ${reviewsHtml}
+                            </div>
+                            
+                            <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; height: fit-content; position: sticky; top: 100px;">
+                                <h3 id="lbl-contact" style="margin-bottom: 20px;">${t.contactInfo}</h3>
+                                
+                                <div style="margin-bottom: 20px;">
+                                    <div id="lbl-address" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">${t.address}</div>
+                                    <div style="font-size: 1.1rem;"><i class="fas fa-map-marker-alt" style="color: var(--secondary); margin-right: 10px;"></i> ${center.address}</div>
+                                </div>
+                                
+                                <div style="margin-bottom: 30px;">
+                                    <div id="lbl-phone" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">${t.phone}</div>
+                                    <div style="font-size: 1.1rem;"><i class="fas fa-phone" style="color: var(--secondary); margin-right: 10px;"></i> ${center.phone}</div>
+                                </div>
+
+                                <div style="margin-bottom: 20px; border-radius: 15px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); height: 300px;">
+                                    <iframe 
+                                        width="100%" 
+                                        height="100%" 
+                                        frameborder="0" 
+                                        scrolling="no" 
+                                        marginheight="0" 
+                                        marginwidth="0" 
+                                        src="https://maps.google.com/maps?q=${encodeURIComponent(center.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                                        style="filter: invert(90%) hue-rotate(180deg);"
+                                    ></iframe>
+                                </div>
+
+                                <div style="display: flex; flex-direction: column; gap: 15px;">
+                                     ${(center.features && center.features.includes('Food')) ?
+                    `<button onclick="openMenuModal()" class="cta-button" style="text-align: center; border-radius: 10px; background: #e67e22; box-shadow: 0 0 15px rgba(230, 126, 34, 0.4);">
+                                            <i class="fas fa-utensils"></i> Order Food (Menu)
+                                        </button>` : ''}
+                                     <button id="btn-book" onclick="openBookingModal()" class="cta-button" style="text-align: center; border-radius: 10px; background: var(--secondary); box-shadow: 0 0 15px rgba(188,19,254,0.3);">
+                                        <i class="fas fa-calendar-check"></i> ${t.bookNow}
+                                    </button>
+                                    <a id="btn-call" href="tel:${center.phone.replace(/[^0-9+]/g, '')}" class="cta-button" style="text-align: center; border-radius: 10px; background: transparent; border: 1px solid var(--primary);">
+                                        <i class="fas fa-phone-alt"></i> ${t.callNow}
+                                    </a>
+                                    <a id="btn-insta" href="${center.instagram}" target="_blank" class="cta-button" style="text-align: center; border-radius: 10px; background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);">
+                                        <i class="fab fa-instagram"></i> ${t.visitInstagram}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        renderDetail();
+        if (typeof setLanguage === 'function') setLanguage(currentLang);
+
+        // --- Advanced Booking Logic ---
+        let selectedSeats = [];
+        let currentCenterType = '';
+        let extraBookingInfo = {}; // Stores selection like "Package Type" or "Game"
+
+        function openBookingModal() {
+            const modal = document.getElementById('bookingModal');
+            const center = centersData.find(c => c.id == centerId);
+            currentCenterType = center ? center.type : '';
+
+            // Reset Form
+            document.getElementById('name').value = '';
+            document.getElementById('date').value = '';
+            document.getElementById('time').value = '';
+            document.getElementById('seat-selection-area').style.display = 'none';
+            document.getElementById('custom-options').style.display = 'none';
+            selectedSeats = [];
+            extraBookingInfo = {};
+
+            // Pre-fill user
+            const currentUser = JSON.parse(localStorage.getItem('gamezone_user'));
+            if (currentUser) document.getElementById('name').value = currentUser.username;
+
+            modal.style.display = 'flex';
+
+            // Setup Listeners
+            document.getElementById('date').addEventListener('change', checkAvailability);
+            document.getElementById('time').addEventListener('change', checkAvailability);
+
+            // Inject Custom Options if needed immediately? No, mostly depends on availability check or static.
+            // Actually, we can show "Game Selection" for VR immediately.
+            renderCustomOptions();
+        }
+
+        function renderCustomOptions() {
+            const container = document.getElementById('custom-options');
+            container.innerHTML = '';
+            container.style.display = 'none'; // Hide by default
+
+            let optionsHTML = '';
+            let title = '';
+
+            if (currentCenterType === 'vr') {
+                container.style.display = 'block';
+                title = 'Select Game';
+                const options = [
+                    { id: 'Phasmophobia', name: 'Phasmophobia', icon: 'fa-ghost' },
+                    { id: 'Beat Saber', name: 'Beat Saber', icon: 'fa-music' },
+                    { id: 'CS:GO VR', name: 'CS:GO VR', icon: 'fa-crosshairs' },
+                    { id: 'Among Us VR', name: 'Among Us VR', icon: 'fa-user-astronaut' }
+                ];
+                optionsHTML = generateOptionsHTML(options, 'game');
+                extraBookingInfo.game = options[0].id; // Default
+            }
+            else if (currentCenterType === 'kids') {
+                container.style.display = 'block';
+                title = 'Select Party Package';
+                const options = [
+                    { id: 'Standard', name: 'Standard (Base)', icon: 'fa-chair' },
+                    { id: 'Superhero', name: 'Superhero (+Show)', icon: 'fa-mask' },
+                    { id: 'Princess', name: 'Princess (+Show)', icon: 'fa-crown' },
+                    { id: 'AllInclusive', name: 'All Inclusive', icon: 'fa-gem' }
+                ];
+                optionsHTML = generateOptionsHTML(options, 'package');
+                extraBookingInfo.package = options[0].id; // Default
+            }
+
+            if (optionsHTML) {
+                container.innerHTML = `<h3 style="margin-bottom: 10px; font-size: 1rem;">${title}</h3>` +
+                    `<div class="options-grid">${optionsHTML}</div>`;
+            }
+        }
+
+        function generateOptionsHTML(options, infoKey) {
+            return options.map((opt, index) => `
+                <div class="option-card ${index === 0 ? 'selected' : ''}" 
+                     onclick="selectOption(this, '${infoKey}', '${opt.id}')">
+                    <i class="fas ${opt.icon}"></i>
+                    ${opt.name}
+                </div>
+            `).join('');
+        }
+
+        function selectOption(el, key, value) {
+            // Remove active class from siblings
+            const siblings = el.parentElement.children;
+            for (let sib of siblings) {
+                sib.classList.remove('selected');
+            }
+            // Add to current
+            el.classList.add('selected');
+            // Update Data
+            extraBookingInfo[key] = value;
+        }
+
+        function checkAvailability() {
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            if (!date || !time) return;
+
+            const seatArea = document.getElementById('seat-selection-area');
+            seatArea.style.display = 'block';
+
+            // Determine Mode
+            let mode = 'general';
+            if (currentCenterType === 'pc') mode = 'pc';
+            else if (currentCenterType === 'kids') mode = 'kids';
+            else if (centerId.includes('kinoplexx')) mode = 'cinema'; // Specific ID check for Cinema
+            else if (currentCenterType === 'arcade' && centerId.includes('vr')) mode = 'vr'; // Fallback
+            else if (currentCenterType === 'arcade' && !centerId.includes('kinoplexx')) mode = 'general'; // Arcades might not need seat selection
+
+            // Override for known VR or specific types not caught
+            if (centersData.find(c => c.id == centerId).features.includes("VR")) mode = 'vr';
+
+            renderSeats(date, time, mode);
+        }
+
+        function renderSeats(date, time, mode) {
+            const container = document.getElementById('seatGrid');
+            const title = document.getElementById('zone-title');
+            container.innerHTML = '';
+            container.className = 'booking-grid'; // reset
+
+            selectedSeats = [];
+
+            // Get Occupied Seats
+            const bookings = JSON.parse(localStorage.getItem('gamezone_bookings')) || [];
+            const occupied = [];
+            bookings.forEach(b => {
+                if (b.centerId === centerId && b.date === date && b.time === time && (b.status === 'Approved' || b.status === 'Pending')) {
+                    if (b.seats) occupied.push(...b.seats);
+                }
+            });
+
+            // --- PC CLUB LOGIC ---
+            if (mode === 'pc') {
+                container.classList.add('pc-grid');
+                container.style.display = 'grid';
+                title.innerText = "Select PCs (Standard & VIP)";
+
+                // Standard Zone (1-15)
+                for (let i = 1; i <= 15; i++) {
+                    createSeat(container, `PC-${i}`, `PC ${i}`, occupied, 'pc-seat');
+                }
+                // VIP Zone (16-20)
+                for (let i = 16; i <= 20; i++) {
+                    createSeat(container, `PC-VIP-${i}`, `VIP ${i}`, occupied, 'pc-seat vip');
+                }
+            }
+            // --- CINEMA LOGIC ---
+            else if (mode === 'cinema') {
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                title.innerText = "Select Cinema Seats";
+
+                container.innerHTML = `
+                    <div class="cinema-container">
+                        <div class="cinema-screen">SCREEN</div>
+                        <div class="cinema-grid" id="cinemaInner"></div>
+                    </div>
+                `;
+                const inner = document.getElementById('cinemaInner');
+
+                // 6 Rows, 8 Seats per row = 48 Seats
+                // Row 6 is Love Seats (Sofa)
+                for (let row = 1; row <= 6; row++) {
+                    for (let seat = 1; seat <= 8; seat++) {
+                        let isLoveSeat = (row === 6);
+                        if (isLoveSeat && seat > 4) continue; // Only 4 love seats in last row (span 2)
+
+                        let id = `R${row}-S${seat}`;
+                        let label = `${row}-${seat}`;
+                        let className = 'cinema-seat';
+
+                        if (isLoveSeat) {
+                            className += ' love-seat';
+                            label = `<i class="fas fa-couch"></i>`;
+                            id = `LoveSeat-${seat}`;
+                        }
+
+                        createSeat(inner, id, label, occupied, className);
+                    }
+                }
+            }
+            // --- KIDS CENTER LOGIC ---
+            else if (mode === 'kids') {
+                container.classList.add('kids-grid');
+                container.style.display = 'grid';
+                title.innerText = "Select Party Area";
+
+                // 6 Themed Tables
+                const themes = [
+                    { id: 1, name: "Heroes", icon: "fa-mask" },
+                    { id: 2, name: "Princess", icon: "fa-crown" },
+                    { id: 3, name: "Jungle", icon: "fa-leaf" },
+                    { id: 4, name: "Space", icon: "fa-rocket" },
+                    { id: 5, name: "Dino", icon: "fa-dragon" },
+                    { id: 6, name: "Magic", icon: "fa-hat-wizard" }
+                ];
+
+                themes.forEach(t => {
+                    createSeat(container, `Table-${t.id}`, `<i class="fas ${t.icon}"></i><br>${t.name}`, occupied, 'kids-table');
+                });
+            }
+            // --- VR ARENA LOGIC ---
+            else if (mode === 'vr') {
+                container.classList.add('vr-grid');
+                container.style.display = 'grid';
+                title.innerText = "Select VR Booth";
+
+                for (let i = 1; i <= 4; i++) {
+                    createSeat(container, `Booth-${i}`, `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <i class="fas fa-vr-cardboard vr-icon"></i>
+                            <div>
+                                <div style="font-weight:bold;">Booth ${i}</div>
+                                <div style="font-size:0.7rem; opacity:0.7;">HTC Vive Pro 2</div>
+                            </div>
+                        </div>
+                    `, occupied, 'vr-booth');
+                }
+            }
+            else {
+                // General booking (no seats)
+                document.getElementById('seat-selection-area').style.display = 'none';
+            }
+        }
+
+        function createSeat(parent, id, htmlContent, occupiedList, className) {
+            const isTaken = occupiedList.includes(id);
+            const el = document.createElement('div');
+            el.className = `${className} ${isTaken ? 'occupied' : ''}`;
+            el.innerHTML = htmlContent;
+
+            if (!isTaken) {
+                el.onclick = () => {
+                    // Selection Logic
+                    // For Kids and VR, maybe allow only 1 selection? No, allow multiple.
+
+                    if (selectedSeats.includes(id)) {
+                        selectedSeats = selectedSeats.filter(s => s !== id);
+                        el.classList.remove('selected');
+                    } else {
+                        selectedSeats.push(id);
+                        el.classList.add('selected');
+                    }
+                };
+            } else {
+                el.title = "Reserved";
+            }
+            parent.appendChild(el);
+        }
+
+        function closeBookingModal() {
+            document.getElementById('bookingModal').style.display = 'none';
+        }
+
+        function submitBooking(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const guests = document.getElementById('guests').value;
+
+            const seatArea = document.getElementById('seat-selection-area');
+            if (seatArea.style.display !== 'none' && selectedSeats.length === 0) {
+                alert('Please select a seat/table/booth!');
+                return;
+            }
+
+            const currentUser = JSON.parse(localStorage.getItem('gamezone_user'));
+            const dataBaseUser = currentUser ? currentUser.username : name;
+
+            // Add extra info to notes or a specific field
+            let finalNote = "";
+            if (extraBookingInfo.game) finalNote += `Game: ${extraBookingInfo.game}. `;
+            if (extraBookingInfo.package) finalNote += `Package: ${extraBookingInfo.package}. `;
+            if (extraBookingInfo.food) finalNote += `[Food Order: ${extraBookingInfo.food} | ${extraBookingInfo.foodCost} ₸]. `;
+
+            const newBooking = {
+                id: Date.now(),
+                userName: dataBaseUser,
+                centerId: centerId,
+                centerName: centersData.find(c => c.id == centerId).name,
+                date: date,
+                time: time,
+                guests: guests,
+                seats: selectedSeats,
+                notes: finalNote,
+                timestamp: new Date().toISOString(),
+                status: 'Pending',
+                totalCost: extraBookingInfo.foodCost || 0 // Store potential cost tracking
+            };
+
+            let bookings = JSON.parse(localStorage.getItem('gamezone_bookings')) || [];
+            bookings.push(newBooking);
+            localStorage.setItem('gamezone_bookings', JSON.stringify(bookings));
+
+            // Add Notification Log
+            if (typeof logActivity === 'function') {
+                // Summarize details
+                let msg = `${newBooking.centerName}: ${newBooking.date} @ ${newBooking.time}`;
+                if (newBooking.seats.length) msg += ` (${newBooking.seats.join(', ')})`;
+                if (newBooking.notes) msg += ` [${newBooking.notes}]`;
+                logActivity('New Booking', msg);
+            }
+
+            alert(`Booking Successful!\nCode: ${newBooking.id}\nWe look forward to seeing you!`);
+            document.getElementById('bookingModal').style.display = 'none';
+
+            // Redirect to Profile to see ticket
+            window.location.href = 'profile.html';
+        }
+
+        /* --- NEW: Review Logic --- */
+        let currentRating = 0;
+
+        function setStar(n) {
+            currentRating = n;
+            const stars = document.querySelectorAll('#starRatingInput i');
+            stars.forEach((s, idx) => {
+                if (idx < n) {
+                    s.classList.remove('far');
+                    s.classList.add('fas', 'active');
+                } else {
+                    s.classList.remove('fas', 'active');
+                    s.classList.add('far');
+                }
+            });
+        }
+
+        function submitReview() {
+            const user = JSON.parse(localStorage.getItem('gamezone_user'));
+            if (!user) {
+                alert('Please login to post a review!');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const text = document.getElementById('reviewText').value;
+            if (!text || currentRating === 0) {
+                alert('Please provide a rating and a comment.');
+                return;
+            }
+
+            const newReview = {
+                id: Date.now(),
+                centerId: centerId,
+                user: user.username,
+                rating: currentRating,
+                comment: text,
+                date: new Date().toLocaleDateString()
+            };
+
+            const reviews = JSON.parse(localStorage.getItem('gamezone_reviews')) || [];
+            reviews.unshift(newReview); // Add to top
+            localStorage.setItem('gamezone_reviews', JSON.stringify(reviews));
+
+            // Reload content to show new review
+            renderDetail();
+            // Re-bind star listeners since DOM replaced
+            // Actually, onclick functions stay valid.
+            alert('Review Posted!');
+        }
+
+        /* --- NEW: Menu Logic --- */
+        const menuItems = [
+            { id: 101, name: "Pepperoni Pizza", price: 2500, img: "https://emojigraph.org/media/apple/pizza_1f355.png" },
+            { id: 102, name: "Cheeseburger", price: 1800, img: "https://emojigraph.org/media/apple/hamburger_1f354.png" },
+            { id: 103, name: "Cola 0.5l", price: 400, img: "https://emojigraph.org/media/apple/soft-drink_1f964.png" },
+            { id: 104, name: "French Fries", price: 800, img: "https://emojigraph.org/media/apple/french-fries_1f35f.png" },
+            { id: 105, name: "Nuggets (6pcs)", price: 1200, img: "https://emojigraph.org/media/apple/poultry-leg_1f357.png" },
+            { id: 106, name: "Energy Drink", price: 900, img: "https://emojigraph.org/media/apple/high-voltage_26a1.png" }
+        ];
+
+        let cart = {}; // { itemId: qty }
+
+        function openMenuModal() {
+            renderMenu();
+            document.getElementById('menuModal').style.display = 'flex';
+        }
+
+        function closeMenuModal() {
+            document.getElementById('menuModal').style.display = 'none';
+        }
+
+        function renderMenu() {
+            const grid = document.getElementById('menuGrid');
+            grid.innerHTML = menuItems.map(item => {
+                const qty = cart[item.id] || 0;
+                return `
+                    <div class="menu-item ${qty > 0 ? 'selected' : ''}">
+                        <img src="${item.img}">
+                        <div class="menu-item-title">${item.name}</div>
+                        <div class="menu-item-price">${item.price} ₸</div>
+                        <div class="menu-counter">
+                            ${qty > 0 ? `<button class="counter-btn" onclick="updateCart(${item.id}, -1)">-</button>` : ''}
+                            <span>${qty > 0 ? qty : 'Add'}</span>
+                            <button class="counter-btn" onclick="updateCart(${item.id}, 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            updateTotal();
+        }
+
+        function updateCart(id, change) {
+            if (!cart[id]) cart[id] = 0;
+            cart[id] += change;
+            if (cart[id] <= 0) delete cart[id];
+            renderMenu();
+        }
+
+        function updateTotal() {
+            let total = 0;
+            for (let [id, qty] of Object.entries(cart)) {
+                const item = menuItems.find(i => i.id == id);
+                if (item) total += item.price * qty;
+            }
+            document.getElementById('menuTotal').innerText = total + ' ₸';
+        }
+
+        function confirmFoodOrder() {
+            // Just move cart to booking info
+            let orderSummary = [];
+            let totalCost = 0;
+            for (let [id, qty] of Object.entries(cart)) {
+                const item = menuItems.find(i => i.id == id);
+                if (item) {
+                    orderSummary.push(`${item.name} x${qty}`);
+                    totalCost += item.price * qty;
+                }
+            }
+
+            if (orderSummary.length > 0) {
+                // Save to extraBookingInfo
+                extraBookingInfo.food = orderSummary.join(', ');
+                extraBookingInfo.foodCost = totalCost;
+                alert(`Food Order Added!\nTotal: ${totalCost} ₸\n\nPlease proceed to verify your booking details.`);
+                closeMenuModal();
+                openBookingModal(); // Open booking immediately
+            } else {
+                closeMenuModal();
+            }
+        }
+
+        // Incorporate food into booking submission
+        // (We need to override or modify submitBooking logic a bit if we want to show it there,
+        // but currently submitBooking just reads extraBookingInfo and puts it in notes.
+        // Let's modify submitBooking to handle 'food' key specifically if possible, 
+        // or just rely on the existing 'finalNote' construction I added earlier?
+        // Ah, I need to check submitBooking in this file.
+
+        // Checking submitBooking code...
+        // It does: if (extraBookingInfo.game) ... if (extraBookingInfo.package) ...
+        // So I should modify submitBooking to also check food.
+
+        // I will do a quick patch of submitBooking in the overrides here or rely on the fact 
+        // that I can inject it via JS?
+        // No, I can't overwrite the upstream function easily without replacing it.
+        // I'll add logic to appendFoodToNote() inside submitBooking if I can replace it.
+        // OR, easier: I already have submitBooking definition in this file.
+        // I will REPLACE the submitBooking function body with one that handles Food.
+
+        // Actually, in the last run I saw submitBooking had:
+        // if (extraBookingInfo.game) finalNote += ...
+        // if (extraBookingInfo.package) finalNote += ...
+
+        // I will replace that block to include food.
+
+        /* End New Logic */
+
+        // Close outside click
+        window.onclick = function (event) {
+            const modal = document.getElementById('bookingModal');
+            if (event.target == modal) modal.style.display = "none";
+        }
+    </script>
+</body>
+
+
+</html>

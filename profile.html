@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - RelaxHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <a href="index.html" class="logo">Relax<span style="color: var(--primary)">Hub</span></a>
+            <div style="display: flex; gap: 20px;">
+                <a href="index.html" class="nav-back-btn" style="color:white;"><i class="fas fa-arrow-left"></i> Back to
+                    Main</a>
+                <button onclick="logout()"
+                    style="background:transparent; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:5px; cursor:pointer;">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 100px; max-width: 800px;">
+        <div class="profile-content" style="margin: 0 auto; padding: 40px; border-radius: 20px;">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-astronaut"></i>
+                </div>
+                <div>
+                    <h2 class="profile-name" id="profileName">Player</h2>
+                    <span class="profile-title" id="p-level-title">Novice Gamer</span>
+                </div>
+            </div>
+
+            <div class="xp-container-large">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span id="p-current-xp">0 XP</span>
+                    <span id="p-next-xp">100 XP</span>
+                </div>
+                <div class="xp-bar large">
+                    <div class="xp-fill" id="p-xp-fill" style="width: 0%"></div>
+                </div>
+                <p style="text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;"
+                    id="p-xp-needed">100 XP to next level</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <h3 id="stat-visited">0</h3>
+                    <p>Visited</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-heart"></i>
+                    <h3 id="stat-favorites">0</h3>
+                    <p>Favorites</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-medal"></i>
+                    <h3 id="stat-badges">0/0</h3>
+                    <p>Badges</p>
+                </div>
+            </div>
+
+            <h3 style="margin: 30px 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                Achievements</h3>
+            <div class="achievements-grid" id="achievementsGrid">
+                <!-- Injected via JS -->
+            </div>
+
+            <h3 style="margin: 30px 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                Favorite Places</h3>
+            <div id="favList" class="centers-grid"
+                style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                <!-- Injected via JS -->
+            </div>
+
+            <h3 style="margin: 30px 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                My Bookings</h3>
+            <div id="bookingsList" class="bookings-list">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Profile specific logic using shared functions from script.js
+        window.onload = function () {
+            const user = JSON.parse(localStorage.getItem('gamezone_user'));
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('profileName').innerText = user.username;
+
+            // Re-use logic from script.js to populate stats
+            if (typeof updateUserLevel === 'function') updateUserLevel();
+
+            // Populate Favorites specific to this page
+            const favContainer = document.getElementById('favList');
+            const favs = user.favorites || [];
+
+            if (favs.length === 0) {
+                favContainer.innerHTML = '<p style="grid-column: 1/-1; color: var(--text-muted);">No favorites yet.</p>';
+            } else {
+                const favCenters = centersData.filter(c => favs.includes(c.id));
+                favCenters.forEach(c => {
+                    favContainer.innerHTML += `
+                        <div class="center-card" onclick="window.location.href='detail.html?id=${c.id}'">
+                             <img src="${c.image}" class="card-image" style="height: 120px;">
+                             <div style="padding: 15px;">
+                                <div style="font-weight:bold; margin-bottom:5px;">${c.name}</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted);">${c.typeName}</div>
+                             </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Populate Stats immediately
+            document.getElementById('stat-visited').innerText = user.visitedCount || 0;
+            document.getElementById('stat-favorites').innerText = favs.length;
+            const unlocked = user.badges || [];
+            document.getElementById('stat-badges').innerText = `${unlocked.length}`;
+
+            // Achievements
+            const grid = document.getElementById('achievementsGrid');
+            grid.innerHTML = achievementsList.map(ach => {
+                const isUnlocked = unlocked.includes(ach.id);
+                return `
+                    <div class="achievement-card ${isUnlocked ? 'unlocked' : ''}">
+                        <div class="achievement-icon"><i class="${ach.icon}"></i></div>
+                        <div class="achievement-title">${ach.title}</div>
+                        <div class="achievement-desc">${ach.desc}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Bookings Logic
+            const bookingContainer = document.getElementById('bookingsList');
+            const allBookings = JSON.parse(localStorage.getItem('gamezone_bookings')) || [];
+            // Filter by username to show only current user's bookings
+            const userBookings = allBookings.filter(b => b.userName === user.username).sort((a, b) => b.id - a.id);
+
+            if (userBookings.length === 0) {
+                bookingContainer.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No bookings found.</p>';
+            } else {
+                bookingContainer.innerHTML = userBookings.map(b => {
+                    let statusClass = 'status-pending';
+                    if (b.status === 'Approved') statusClass = 'status-approved';
+                    if (b.status === 'Rejected') statusClass = 'status-rejected';
+
+                    // Parse detailed info
+                    let selectionInfo = b.seats && b.seats.length > 0 ? b.seats.join(', ') : 'General Entry';
+                    let extraInfo = b.notes ? b.notes : 'No extra notes';
+
+                    return `
+                        <div class="booking-item">
+                            <div class="booking-header">
+                                <h4>${b.centerName}</h4>
+                                <div class="booking-status ${statusClass}">${b.status}</div>
+                            </div>
+                            <div class="booking-body">
+                                <div>
+                                   <p><strong>Date:</strong> <span>${b.date}</span></p>
+                                   <p><strong>Time:</strong> <span>${b.time}</span></p>
+                                   <p><strong>Guests:</strong> <span>${b.guests}</span></p>
+                                </div>
+                                <div class="booking-details">
+                                    <p><strong>Selection:</strong> ${selectionInfo}</p>
+                                    <p style="margin-top:5px; font-size:0.85rem;">${extraInfo}</p>
+                                </div>
+                            </div>
+                            <div class="booking-footer">
+                                ID: ${b.id} &bull; RELAXHUB TICKET
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        };
+
+        function logout() {
+            localStorage.removeItem('gamezone_user');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+
+</html>

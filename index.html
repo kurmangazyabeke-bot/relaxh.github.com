@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RelaxHub - Entertainment Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-content">
+            <a href="index.html" class="logo">Relax<span style="color: var(--primary)">Hub</span></a>
+
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <!-- User Level Badge -->
+                <div class="user-level" id="userLevelBadge" onclick="openProfile()" style="cursor: pointer;">
+                    <div class="level-circle">1</div>
+                    <div class="level-info">
+                        <span class="level-title">Novice Gamer</span>
+                        <div class="xp-bar">
+                            <div class="xp-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lang-switch">
+                    <button class="lang-btn active" onclick="setLanguage('en')">EN</button>
+                    <button class="lang-btn" onclick="setLanguage('ru')">RU</button>
+                    <button class="lang-btn" onclick="setLanguage('kz')">KZ</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content container">
+            <h1>Discover the Best<br><span style="color: var(--primary)">Game Centers</span></h1>
+            <p>Your ultimate guide to VR arenas, PC clubs, Arcades, and Entertainment spots in the city. Find your next
+                adventure today.</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button class="cta-button"
+                    onclick="document.getElementById('centers').scrollIntoView({behavior: 'smooth'})">Explore
+                    Places</button>
+                <button class="cta-button" style="background: var(--text-main); color: black;"
+                    onclick="openRandomizer()">
+                    <i class="fas fa-dice"></i> I'm Feeling Lucky
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Events Section -->
+    <section class="container" style="margin-top: -50px; position: relative; z-index: 10;">
+        <div class="events-slider" id="eventsContainer">
+            <!-- Events injected by JS -->
+        </div>
+    </section>
+
+    <main id="centers" class="container quote-section">
+        <div class="filters-section">
+            <div class="search-bar-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by name...">
+            </div>
+
+            <div class="search-bar-container" id="categoryFilters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="vr">VR Arenas</button>
+                <button class="filter-btn" data-filter="pc">PC Clubs</button>
+                <button class="filter-btn" data-filter="arcade">Arcades</button>
+                <button class="filter-btn" data-filter="kids">Kids Center</button>
+                <button class="filter-btn" data-filter="favorites"
+                    style="border-color: var(--accent); color: var(--accent);"><i class="fas fa-heart"></i>
+                    Favorites</button>
+            </div>
+
+            <!-- Smart Filters -->
+            <div class="smart-filters" id="smartFilters">
+                <label class="smart-filter-checkbox">
+                    <input type="checkbox" value="24/7">
+                    <span><i class="fas fa-clock"></i> 24/7</span>
+                </label>
+                <label class="smart-filter-checkbox">
+                    <input type="checkbox" value="Food">
+                    <span><i class="fas fa-hamburger"></i> Food/Snacks</span>
+                </label>
+                <label class="smart-filter-checkbox">
+                    <input type="checkbox" value="VIP">
+                    <span><i class="fas fa-crown"></i> VIP Rooms</span>
+                </label>
+                <label class="smart-filter-checkbox">
+                    <input type="checkbox" value="PS5">
+                    <span><i class="fab fa-playstation"></i> PS5</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- View Toggle (Grid/Map) -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <button class="toggle-view-btn active" onclick="setView('grid')"><i class="fas fa-th"></i> Grid</button>
+            <button class="toggle-view-btn" onclick="setView('map')"><i class="fas fa-map"></i> Map</button>
+        </div>
+
+        <div id="centersGrid" class="centers-grid">
+            <!-- Centers will be injected here by JS -->
+        </div>
+
+        <div id="centersMap" class="centers-map-container" style="display: none;">
+            <div id="map" style="width: 100%; height: 500px; border-radius: 20px;"></div>
+        </div>
+    </main>
+
+    <!-- Randomizer Modal -->
+    <div id="randomizerModal" class="modal-overlay">
+        <div class="modal-base randomizer-content">
+            <i class="fas fa-times close-modal" onclick="closeRandomizer()"></i>
+            <h2>Where to go?</h2>
+            <div class="roulette-wheel" id="rouletteWheel">
+                <i class="fas fa-question" style="font-size: 5rem; color: var(--primary);"></i>
+            </div>
+            <h3 id="randomResult" style="margin-top: 20px; min-height: 1.5em; color: var(--text-muted);">Spinning...
+            </h3>
+            <button class="cta-button" onclick="spinRoulette()" style="margin-top: 20px;">Spin Again</button>
+            <button id="goToResultBtn" class="cta-button"
+                style="display:none; background: var(--secondary); margin-top: 10px;">Go There!</button>
+        </div>
+    </div>
+
+    <!-- Profile Modal (Gamification Dashboard) -->
+    <div id="profileModal" class="modal-overlay">
+        <div class="modal-base profile-content">
+            <i class="fas fa-times close-modal" onclick="closeProfile()"></i>
+
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-astronaut"></i>
+                </div>
+                <div>
+                    <h2 class="profile-name">Player One</h2>
+                    <span class="profile-title" id="p-level-title">Novice Gamer</span>
+                </div>
+            </div>
+
+            <div class="xp-container-large">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span id="p-current-xp">0 XP</span>
+                    <span id="p-next-xp">100 XP</span>
+                </div>
+                <div class="xp-bar large">
+                    <div class="xp-fill" id="p-xp-fill" style="width: 0%"></div>
+                </div>
+                <p style="text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;"
+                    id="p-xp-needed">100 XP to next level</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <h3 id="stat-visited">0</h3>
+                    <p>Visited</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-heart"></i>
+                    <h3 id="stat-favorites">0</h3>
+                    <p>Favorites</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-medal"></i>
+                    <h3 id="stat-badges">0/4</h3>
+                    <p>Badges</p>
+                </div>
+            </div>
+
+            <h3 style="margin: 20px 0 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                Achievements</h3>
+            <div class="achievements-grid" id="achievementsGrid">
+                <!-- Achievements injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container footer-content">
+            <h2>RelaxHub</h2>
+            <p>&copy; 2026 Virtual Entertainment Directory. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

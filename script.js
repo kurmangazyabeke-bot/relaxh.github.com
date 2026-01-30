@@ -766,3 +766,28 @@ window.addEventListener('load', () => {
         }
     }
 });
+
+/* --- Scroll Reveal Animation --- */
+const observerOptions = {
+    threshold: 0.15, // Trigger when 15% visible
+    rootMargin: "0px 0px -50px 0px"
+};
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+            observer.unobserve(entry.target); // Only animate once
+        }
+    });
+}, observerOptions);
+
+// Function to init reveal elements
+function initScrollReveal() {
+    const elements = document.querySelectorAll('.reveal');
+    elements.forEach(el => observer.observe(el));
+}
+
+// Run on load
+window.addEventListener('load', initScrollReveal);
+

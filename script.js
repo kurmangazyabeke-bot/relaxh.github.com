@@ -769,8 +769,8 @@ window.addEventListener('load', () => {
 
 /* --- Scroll Reveal Animation --- */
 const observerOptions = {
-    threshold: 0.15, // Trigger when 15% visible
-    rootMargin: "0px 0px -50px 0px"
+    threshold: 0.1,
+    rootMargin: "0px" // Removed negative margin to ensure visibility
 };
 
 const observer = new IntersectionObserver((entries) => {
@@ -789,5 +789,9 @@ function initScrollReveal() {
 }
 
 // Run on load
+// Run on DOMContentLoaded for faster execution
+document.addEventListener('DOMContentLoaded', initScrollReveal);
+
+// Fallback: Also run on load to catch any missed updates (idempotent since observer checks)
 window.addEventListener('load', initScrollReveal);
 

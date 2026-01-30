@@ -776,6 +776,15 @@ footer {
         width: 95%;
     }
 
+    /* Input sizing for mobile touch */
+    .form-group input,
+    .form-group select {
+        padding: 15px;
+        /* Larger tap area */
+        font-size: 1rem;
+        /* Prevent zoom on iOS */
+    }
+
     /* Footer */
     footer {
         padding: 30px 0;
@@ -806,6 +815,46 @@ footer {
         font-size: 1rem;
     }
 }
+
+/* --- Mobile Bottom Sheet Modal --- */
+/* Transform the standard centered modal into a bottom sheet on mobile */
+@media (max-width: 768px) {
+
+    #bookingModal .modal-base,
+    #menuModal .modal-base,
+    #profileModal .modal-base {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        top: auto;
+        transform: none;
+        /* Reset center transform if any */
+        width: 100%;
+        max-width: 100%;
+        border-radius: 25px 25px 0 0;
+        /* Rounded top only */
+        max-height: 85vh;
+        /* Occupy mostly height but leave space for overlay tap */
+        overflow-y: auto;
+        /* Scrollable content */
+        animation: slideUp 0.3s ease-out;
+        padding-bottom: 40px;
+        /* Space for iPhone Home Bar */
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
 
 /* --- Cool Optimizations --- */
 

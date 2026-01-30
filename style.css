@@ -660,13 +660,150 @@ footer {
     -webkit-text-fill-color: transparent;
 }
 
+/* --- Responsive Design (Mobile First Fixes) --- */
+
+/* Detail Page Classes */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+}
+
+.sidebar-sticky {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 30px;
+    border-radius: 15px;
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+}
+
+@media (max-width: 900px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+        /* Stack on smaller screens */
+        gap: 20px;
+    }
+
+    .sidebar-sticky {
+        position: static;
+        margin-top: 20px;
+    }
+}
+
 @media (max-width: 768px) {
+
+    /* Global Adjustments */
+    .container {
+        padding: 0 15px;
+    }
+
+    /* Navbar */
+    .navbar {
+        padding: 10px 0;
+    }
+
+    .nav-content {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .user-level {
+        display: none !important;
+        /* Hide complicated badge on mobile, keep it simple */
+    }
+
+    /* Hero */
+    .hero {
+        height: auto;
+        min-height: 80vh;
+        padding-top: 100px;
+        /* Space for stacked navbar */
+        padding-bottom: 50px;
+    }
+
     .hero-content h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
+    }
+
+    .hero-content p {
+        font-size: 1rem;
+    }
+
+    /* Filters */
+    .search-bar-container {
+        flex-direction: column;
+        width: 100%;
     }
 
     .search-input {
         width: 100%;
+    }
+
+    .smart-filters {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* Grid */
+    .centers-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        /* Allow smaller cards */
+        gap: 20px;
+    }
+
+    /* Detail Page Specifics */
+    .detail-container-padding {
+        padding: 20px !important;
+    }
+
+    /* Booking Modals */
+    .seat-grid {
+        grid-template-columns: repeat(4, 1fr);
+        /* Reduce columns */
+    }
+
+    .pc-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    .kids-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .modal-base {
+        padding: 20px;
+        width: 95%;
+    }
+
+    /* Footer */
+    footer {
+        padding: 30px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-content h1 {
+        font-size: 1.8rem;
+    }
+
+    /* Further reduce seat columns for very small screens */
+    .seat-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .pc-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    .filter-btn {
+        padding: 8px 15px;
+        font-size: 0.8rem;
+    }
+
+    .cta-button {
+        padding: 12px 30px;
+        font-size: 1rem;
     }
 }
 

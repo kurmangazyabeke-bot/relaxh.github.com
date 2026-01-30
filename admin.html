@@ -301,6 +301,30 @@
                 max-height: 500px;
             }
         }
+
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 30px 10px;
+                /* Reduced top padding */
+                margin-top: 60px;
+                /* Account for fixed nav */
+            }
+
+            .table-container {
+                overflow-x: auto;
+                /* Enable Horizontal Scroll */
+            }
+
+            .booking-table {
+                min-width: 600px;
+                /* Force table width so it scrolls */
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 
